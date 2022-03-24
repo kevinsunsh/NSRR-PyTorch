@@ -14,11 +14,45 @@ class NSRRModel(BaseModel):
     def __init__(self):
         super(NSRRModel, self).__init__()
         # TODO setup all previous models into this one
-        pass
+        FEM = NSRRFeatureExtractionModel()
+        UP2D = ZeroUpsample2D([2,2])
+        BW = BackwardWarp()
+        FRM = NSRRFeatureReweightingModel()
+        RCM = NSRRReconstructionModel()
+        OTM = OpticalFlowToMotion(0.5)
+        self.add_module("featuring", FEM)
+        self.add_module("upsample", UP2D)
+        self.add_module("backwardwarp", BW)
+        self.add_module("weighting", FRM)
+        self.add_module("reconstruction", RCM)
+        self.add_module("opticaltomotion", OTM)
 
-    def forward(self):
+    def forward(self, colour_images: torch.Tensor, depth_images: torch.Tensor, motionv_images: torch.Tensor):
         # TODO setup all previous models into this one
-        pass
+        motionv_images = self.opticaltomotion(motionv_images)
+        x_i_features = self.featuring(colour_images[5:, :], depth_images[5:, :])
+        x_i_1_features = self.featuring(colour_images[4:-1, :], depth_images[4:-1, :])
+        x_i_2_features = self.featuring(colour_images[3:-2, :], depth_images[3:-2, :])
+        x_i_3_features = self.featuring(colour_images[2:-3, :], depth_images[2:-3, :])
+        x_i_4_features = self.featuring(colour_images[1:-4, :], depth_images[1:-4, :])
+
+        x_i_features = self.upsample(x_i_features)
+        x_color = self.upsample(torch.cat((colour_images[5:, :], depth_images[5:, :]), dim=1))
+        x_i_1_features = self.upsample(x_i_1_features)
+        x_i_2_features = self.upsample(x_i_2_features)
+        x_i_3_features = self.upsample(x_i_3_features)
+        x_i_4_features = self.upsample(x_i_4_features)
+        
+        x_i_1_features = self.backwardwarp(x_i_1_features, self.upsample(motionv_images[4:-1, :]))
+        x_i_2_features = self.backwardwarp(x_i_2_features, self.upsample(motionv_images[3:-2, :]))
+        x_i_3_features = self.backwardwarp(x_i_3_features, self.upsample(motionv_images[2:-3, :]))
+        x_i_4_features = self.backwardwarp(x_i_4_features, self.upsample(motionv_images[1:-4, :]))
+
+        previous_features = self.weighting(x_color, [x_i_1_features, x_i_2_features, x_i_3_features, x_i_4_features])
+
+        x = self.reconstruction(x_i_features, previous_features[0])
+        return x
+
 
 class NSRRFeatureExtractionModel(BaseModel):
     """
@@ -139,6 +173,12 @@ class NSRRReconstructionModel(BaseModel):
         # the concatenated features of all previous frames,
         # so the input number of channels of the first 2D convolution
         # would be 12 * self.number_previous_frames
+        encoder0 = nn.Sequential(
+            nn.Conv2d(24, 32, kernel_size=kernel_size, padding=padding),
+            nn.ReLU(),
+            nn.Conv2d(32, 8, kernel_size=kernel_size, padding=padding),
+            nn.ReLU()
+        )
         encoder1 = nn.Sequential(
             nn.Conv2d(8, 64, kernel_size=kernel_size, padding=padding),
             nn.ReLU(),
@@ -171,7 +211,7 @@ class NSRRReconstructionModel(BaseModel):
             nn.Conv2d(32, 3, kernel_size=kernel_size, padding=padding),
             nn.ReLU()
         )
-
+        self.add_module("encoder_0", encoder0)
         self.add_module("encoder_1", encoder1)
         self.add_module("encoder_2", encoder2)
         self.add_module("center", center)
@@ -190,7 +230,7 @@ class NSRRReconstructionModel(BaseModel):
         # Features of the current frame and the reweighted features
         # of previous frames are concatenated
         x = torch.cat((current_features, previous_features), 1)
-
+        x = self.encoder_0(x)
         # Cache result to handle 'skipped' connection for encoder 1 & 2
         x_encoder_1 = self.encoder_1(x)
         x = self.pooling(x_encoder_1)

@@ -1,7 +1,6 @@
 
 import os
 from base import BaseDataLoader
-
 import torch.nn as nn
 from torch.utils.data import Dataset
 import torchvision.transforms as tf
@@ -18,7 +17,7 @@ class NSRRDataLoader(BaseDataLoader):
 
     """
     def __init__(self,
-                 root_dir: str,
+                 data_dir: str,
                  view_dirname: str,
                  depth_dirname: str,
                  flow_dirname: str,
@@ -28,7 +27,7 @@ class NSRRDataLoader(BaseDataLoader):
                  num_workers: int = 1,
                  downscale_factor: Union[Tuple[int, int], List[int], int] = (2, 2)
                  ):
-        dataset = NSRRDataset(root_dir,
+        dataset = NSRRDataset(data_dir,
                               view_dirname=view_dirname,
                               depth_dirname=depth_dirname,
                               flow_dirname=flow_dirname,

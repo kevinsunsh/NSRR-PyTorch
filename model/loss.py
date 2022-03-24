@@ -24,7 +24,7 @@ def feature_reconstruction_loss(conv_layer_output: torch.Tensor, conv_layer_targ
     return loss
 
 
-def nsrr_loss(output: torch.Tensor, target: torch.Tensor, w: float) -> torch.Tensor:
+def nsrr_loss(output: torch.Tensor, target: torch.Tensor, w: float= 0.5) -> torch.Tensor:
     """
     Computes the loss as defined in the NSRR paper.
     """

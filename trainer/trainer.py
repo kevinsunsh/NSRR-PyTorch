@@ -40,12 +40,14 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (data, target) in enumerate(self.data_loader):
-            data, target = data.to(self.device), target.to(self.device)
+        for batch_idx, (color, depth, motionv, target) in enumerate(self.data_loader):
+            color, depth, motionv, target = color.to(self.device), depth.to(self.device), motionv.to(self.device), target.to(self.device)
 
             self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = self.criterion(output, target)
+            output = self.model(color, depth, motionv)
+            print(output.shape)
+            print(target.shape)
+            loss = self.criterion(output, target[5:, :])
             loss.backward()
             self.optimizer.step()
 
@@ -82,10 +84,10 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(self.valid_data_loader):
-                data, target = data.to(self.device), target.to(self.device)
+            for batch_idx, (color, depth, motionv, target) in enumerate(self.valid_data_loader):
+                color, depth, motionv, target = color.to(self.device), depth.to(self.device), motionv.to(self.device), target.to(self.device)
 
-                output = self.model(data)
+                output = self.model(color, depth, motionv)
                 loss = self.criterion(output, target)
 
                 self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
