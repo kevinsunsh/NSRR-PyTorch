@@ -10,8 +10,8 @@
         "type": "NSRRDataLoader",
         "args":{
             "data_dir": "data/",
-            "batch_size": 128,
-            "shuffle": true,
+            "batch_size": 32,
+            "shuffle": false,
             "validation_split": 0.1,
             "num_workers": 8,
             "view_dirname": "View/",

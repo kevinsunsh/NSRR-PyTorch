@@ -19,8 +19,8 @@ def backward_warp_motion(img: torch.Tensor, motion: torch.Tensor) -> torch.Tenso
     # see: https://discuss.pytorch.org/t/image-warping-for-backward-flow-using-forward-flow-matrix-optical-flow/99298
     # input image is: [batch, channel, height, width]
     index_batch, number_channels, height, width = img.size()
-    grid_x = torch.arange(width).view(1, -1).repeat(height, 1)
-    grid_y = torch.arange(height).view(-1, 1).repeat(1, width)
+    grid_x = torch.arange(width, device=motion.get_device()).view(1, -1).repeat(height, 1)
+    grid_y = torch.arange(height, device=motion.get_device()).view(-1, 1).repeat(1, width)
     grid_x = grid_x.view(1, 1, height, width).repeat(index_batch, 1, 1, 1)
     grid_y = grid_y.view(1, 1, height, width).repeat(index_batch, 1, 1, 1)
     ##
@@ -93,7 +93,7 @@ def upsample_zero_2d(img: torch.Tensor,
         scale_factor = torch.tensor(np.asarray(scale_factor), dtype=torch.int)
     ##
     output_size = torch.cat((data_size, output_image_size))
-    output = torch.zeros(tuple(output_size.tolist()))
+    output = torch.zeros(tuple(output_size.tolist()), device=img.get_device())
     ##
     # todo: use output.view(...) instead.
     output[:, :, ::scale_factor[0], ::scale_factor[1]] = img

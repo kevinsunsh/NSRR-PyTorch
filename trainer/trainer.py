@@ -41,6 +41,7 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (color, depth, motionv, target) in enumerate(self.data_loader):
+            print(self.device)
             color, depth, motionv, target = color.to(self.device), depth.to(self.device), motionv.to(self.device), target.to(self.device)
 
             self.optimizer.zero_grad()
